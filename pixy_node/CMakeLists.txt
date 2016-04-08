@@ -1,13 +1,16 @@
 cmake_minimum_required (VERSION 2.8)
-project (pantilt_c CXX)
+project (pantilt_c CXX C)
 
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake" )
+set (LIBPOSITIONING_LIBRARY "${CMAKE_SOURCE_DIR}/lib/indoor_positioning")
 
 # Add sources here... #
-add_executable (pantilt_c pan_tilt.cpp drone_loc.c)
+add_executable (pantilt_c pan_tilt.cpp)
+add_library (pos ${LIBPOSITIONING_LIBRARY}/drone_loc.c)
 
 # libpixyusb should always come before libboost and libusb #
-target_link_libraries (pantilt_c pixyusb)
+target_link_libraries (pantilt_c pixyusb pos)
+
 
 find_package ( libpixyusb REQUIRED )
 find_package ( libusb-1.0 REQUIRED )
@@ -19,14 +22,13 @@ target_link_libraries (pantilt_c ${LIBUSB_1_LIBRARY})
 file(STRINGS "cmake/VERSION" LIBPIXY_VERSION)
 add_definitions(-D__LIBPIXY_VERSION__="${LIBPIXY_VERSION}")
 
-include_directories (src
+include_directories (${LIBPOSITIONING_LIBRARY}
+                     src
                      include
                      ../../common
                      ${Boost_INCLUDE_DIR}
                      ${LIBUSB_1_INCLUDE_DIRS})
 
-add_library(libposition
-	lib/drone_loc.c
-	)
+
 
 

@@ -19,7 +19,17 @@
 #include <signal.h>
 #include <string.h>
 #include "pixy.h"
-#include "  drone_loc.h"
+
+//include c header files
+#ifdef __cplusplus
+extern "C"{
+#endif
+
+#include "drone_loc.h"
+
+#ifdef __cplusplus
+}
+#endif
 
 #define BLOCK_BUFFER_SIZE          10
 
