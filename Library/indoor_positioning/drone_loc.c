@@ -1,5 +1,4 @@
 #include "drone_loc.h"
-#include "mot.h"	//the library from Likun
 
 static int screen_Len = 0;
 static int screen_Wid = 0;
