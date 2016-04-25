@@ -31,12 +31,14 @@ extern "C"{
 }
 #endif
 
-#define BLOCK_BUFFER_SIZE          10
+#define ALL_DIFFERENT(i1, i2, i3, i4)    (i1 != i2 && i1 != i3 && i1 != i4 && i2 != i3 && i2 != i4 && i3 != i4 )
+
+#define BLOCK_BUFFER_SIZE          4
 
 #define PIXY_X_CENTER              ((PIXY_MAX_X-PIXY_MIN_X)/2)
 #define PIXY_Y_CENTER              ((PIXY_MAX_Y-PIXY_MIN_Y)/2)
 
-#define PIXY_RCS_PAN_CHANNEL        0
+#define PIXY_RCS_PAN_CHANNEL       0
 #define PIXY_RCS_TILT_CHANNEL       1
 
 // PID control parameters //
@@ -201,9 +203,26 @@ int main(int argc, char *  argv[])
     }
 
     //excute position calculation when found 4 blocks
-    if(blocks_copied == 4){
-        //judge the l,m,r,s
-
+    if(blocks_copied == 4 && ALL_DIFFERENT(blocks[0].signature, blocks[1].signature, blocks[2].signature, blocks[3].signature)){
+       //determine the l,m,r,s
+        for(int j=0; j<4; j++)
+        {
+            switch(blocks[j].signature)
+            {
+                case 1: camera_raw_coordinates.l_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+                             camera_raw_coordinates.l_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+                             break;
+                case 2: camera_raw_coordinates.r_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+                             camera_raw_coordinates.r_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+                             break;
+                case 3: camera_raw_coordinates.m_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+                             camera_raw_coordinates.m_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+                             break;
+                case 4: camera_raw_coordinates.s_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+                             camera_raw_coordinates.s_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+                             break;
+            }
+        }
 
         PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);
         for(int i=0; i<4; i++)
