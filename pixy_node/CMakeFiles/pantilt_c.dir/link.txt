@@ -1,0 +1,1 @@
+/usr/bin/c++      CMakeFiles/pantilt_c.dir/pan_tilt.cpp.o CMakeFiles/pantilt_c.dir/lib/drone_loc.cpp.o  -o pantilt_c -rdynamic -lpixyusb -lboost_thread -lboost_system -lboost_chrono -lpthread -lusb-1.0 

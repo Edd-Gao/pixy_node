@@ -1,0 +1,26 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/lib/MOT.h
+stdio.h
+-
+
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/lib/drone_loc.cpp
+drone_loc.h
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/lib/drone_loc.h
+MOT.h
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/lib/MOT.h
+
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/lib/drone_loc.h
+stdio.h
+-
+math.h
+-
+MOT.h
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/lib/MOT.h
+

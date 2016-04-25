@@ -1,0 +1,2 @@
+/usr/bin/ar cq liblibposition.a  CMakeFiles/libposition.dir/lib/drone_loc.cpp.o
+/usr/bin/ranlib liblibposition.a

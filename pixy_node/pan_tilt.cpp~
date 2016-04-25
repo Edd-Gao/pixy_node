@@ -19,7 +19,7 @@
 #include <signal.h>
 #include <string.h>
 #include "pixy.h"
-#include "lib/drone_loc.h"
+#include "drone_loc.h"
 
 #define ALL_DIFFERENT(i1, i2, i3, i4)    (i1 != i2 && i1 != i3 && i1 != i4 && i2 != i3 && i2 != i4 && i3 != i4 )
 

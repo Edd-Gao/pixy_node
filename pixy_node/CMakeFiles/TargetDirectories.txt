@@ -1,0 +1,2 @@
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/CMakeFiles/pantilt_c.dir
+/home/evan/drone_swarm/drone-control/src/position_estimate/pixy_node/CMakeFiles/libposition.dir
