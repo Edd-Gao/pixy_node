@@ -203,7 +203,49 @@ int main(int argc, char *  argv[])
     }
 
     //excute position calculation when found 4 blocks
-    if(blocks_copied == 4 && ALL_DIFFERENT(blocks[0].signature, blocks[1].signature, blocks[2].signature, blocks[3].signature)){
+    int max=0, min=640;
+    int max_j=0, min_j=0;
+    if(blocks_copied == 4 && (blocks[0].signature + blocks[1].signature + blocks[2].signature + blocks[3].signature)==5){
+
+      for(int j=0; j<4; j++){
+        if(blocks[j].signature == 1){
+          if(blocks[j].x > max){
+            max_j = j;
+          }
+          if(blocks[j].x < min){
+            min_j = j;
+          }
+        }
+      }
+      for(int j=0; j<4; j++){
+        if(blocks[j].signature == 2){
+          camera_raw_coordinates.m_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+          camera_raw_coordinates.m_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+        }
+        else if(j == max_j){
+          camera_raw_coordinates.l_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+          camera_raw_coordinates.l_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+        }
+        else if(j == min_j){
+          camera_raw_coordinates.s_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+          camera_raw_coordinates.s_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+        }
+        else{
+          camera_raw_coordinates.r_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
+          camera_raw_coordinates.r_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+        }
+
+      }
+
+      PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);
+      for(int i=0; i<4; i++)
+          {
+              printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.corP_x[i], calculated_position_coordinate.corP_y[i], calculated_position_coordinate.corP_z[i]);
+          }
+
+    }
+
+/*    if(blocks_copied == 4 && ALL_DIFFERENT(blocks[0].signature, blocks[1].signature, blocks[2].signature, blocks[3].signature)){
        //determine the l,m,r,s
         for(int j=0; j<4; j++)
         {
@@ -223,13 +265,9 @@ int main(int argc, char *  argv[])
                              break;
             }
         }
+        */
 
-        PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);
-        for(int i=0; i<4; i++)
-            {
-                printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.corP_x[i], calculated_position_coordinate.corP_y[i], calculated_position_coordinate.corP_z[i]);
-            }
-    }
+
 
     if(frame_index % 50 == 0) {
       // Display received blocks //
