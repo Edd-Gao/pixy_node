@@ -10,9 +10,9 @@
 #define drone_camera_Dist	3
 
 struct cor_to_ball_s{
-	double corP_x[4];
-	double corP_y[4];
-	double corP_z[4];
+	double corP_x;
+	double corP_y;
+	double corP_z;
 };
 
 /*brief
