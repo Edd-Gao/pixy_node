@@ -1,4 +1,5 @@
 #include "drone_loc.h"
+#include "MOT.h"	//the library from Likun
 
 static int screen_Len = 0;
 static int screen_Wid = 0;
@@ -11,11 +12,11 @@ static const int OK = 1;	//maybe defined in a head file.
 static const int ERROR = -1;	//can be deleted later
 static const int yR = 10;	//yR equals the half of d_LR. yR=d_LR/2
 static double xC, r, xB, yB;
-static double s[4]={0};	//store the result of  1_4 function
-static double xP[4]={0}, yP[4]={0};	//store the result of P in a certain coordinate
+static double sol = 0;	//store the result of 1_4 function
+static double xP = 0, yP = 0;	//store the result of P in a certain coordinate
 
 int solve_1_4(double angle_1, double angle_2, double angle_3);
-void turn_coordinate(struct cor_to_ball_s * answer, int len);
+void turn_coordinate(struct cor_to_ball_s * answer);
 void substraction(double a[], double b[], double diff[]);
 double dotproduct(double x[], double y[]);
 double norm(double a[]);
@@ -67,31 +68,30 @@ int GetParameter(int parameter, int *value)
 
 int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct cor_to_ball_s *solution)
 {
-    double camera_P[3]={screen_Len/2, screen_Wid/2,camera_Dist};         //the coordinates of P point
+    double camera_P[3]={screen_Len/2, screen_Wid/2, camera_Dist};         //the coordinates of P point
     double screen_Ri[3]={photo.r_coordinate[0],photo.r_coordinate[1],0};        //the coordinates of Ri point
     double screen_Li[3]={photo.l_coordinate[0],photo.l_coordinate[1],0};        //the coordinates of Li point
     double screen_Mi[3]={photo.m_coordinate[0],photo.m_coordinate[1],0};        //the coordinates of Mi point
     
-    double vector_P_Ri[3];
-	double vector_P_Li[3];
-	double vector_P_Mi[3];
-	double vector_P_A[3];
+    double vector_P_Ri[3];	//vector P->Ri
+	double vector_P_Li[3];	//vector P->Li
+	double vector_P_Mi[3];	//vector P->Mi
+	double vector_P_A[3];	//A是P_Ri_Li平面上一点，满足直线A_Mi垂直P_Ri_Li平面
 	double n[3];
 	double Za, Xa, Ya;
 	double angle_a, angle_b, angle_r;
-	int length = 0;
+	int function_state = 0;
 
     substraction(camera_P, screen_Ri, vector_P_Ri);       //the coordinates of vector P_Ri
     substraction(camera_P, screen_Li, vector_P_Li);       //the coordinates of vector P_Li    
     substraction(camera_P, screen_Mi, vector_P_Mi);       //the coordinates of vector P_Mi
-    
-
-    n[0] = vector_P_Ri[1] * vector_P_Li[2] - vector_P_Ri[2] * vector_P_Li[1];
+ 
+	n[0] = vector_P_Ri[1] * vector_P_Li[2] - vector_P_Ri[2] * vector_P_Li[1];
     n[1] = vector_P_Ri[2] * vector_P_Li[0] - vector_P_Ri[0] * vector_P_Li[2];
     n[2] = vector_P_Ri[0] * vector_P_Li[1] - vector_P_Ri[1] * vector_P_Li[0];         //the normal vector of plane P_Ri_Li
 	Za = ( n[0]*n[2]*(screen_Len/2-photo.m_coordinate[0]) + n[1]*n[2]*(screen_Wid/2-photo.m_coordinate[1]) + n[2]*n[2]*camera_Dist ) / (n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
 	Xa = n[0]/n[2]*Za + photo.m_coordinate[0];
-	Ya = n[1]/n[2]*Za + photo.m_coordinate[0];
+	Ya = n[1]/n[2]*Za + photo.m_coordinate[1];
 	//A as a point belong to plane P_Ri_Li, it makes vector A_Mi perpendicular to plane P_Ri_Li
 	//vector_P_A[3] = {Xa-screen_Len/2, Ya-screen_Wid/2, Za-camera_Dist };			  //the coordinates of vector P_A
 	vector_P_A[0] = Xa-screen_Len/2; vector_P_A[1] = Ya-screen_Wid/2; vector_P_A[2] = Za-camera_Dist;
@@ -99,8 +99,15 @@ int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct co
 	angle_a = acos( dotproduct(vector_P_Ri, vector_P_Li)/( norm(vector_P_Ri) * norm(vector_P_Li) ) );	   //calculate the value of angle a
 	angle_b = acos( dotproduct(vector_P_Ri, vector_P_A)/( norm(vector_P_Ri) * norm(vector_P_A) ) );	  //calculate the value of angle b
 	angle_r = asin( dotproduct(vector_P_Mi, n)/( norm(vector_P_Mi) * norm(n) ) );	  //calculate the value of angle r
-	length = solve_1_4(angle_a, angle_b, angle_r);
-	turn_coordinate( solution, length );
+	function_state = solve_1_4(angle_a, angle_b, angle_r);
+	if(function_state == OK)
+	{
+		turn_coordinate( solution );
+	}
+	else
+	{
+		printf("cannot locate the drone\n");
+	}
     return OK;
 }
 
@@ -152,11 +159,11 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 	double c4 = n+1;
 
 	double d0, d1, d2, delta;
-	double k_BM[4];	//define the gradient
+	double k_BM;	//define the gradient
 	double x1, x2;	//store the temp result of function
 
 	double x,xx,f,k,temp_x;
-	int i=0, j=0, answer_length=0, flag;
+	int i=0;
 	x=15.0;
 
 	for(i=0; i<10; i++)
@@ -172,64 +179,48 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 			k = 4*c4*x*x*x + 3*c3*x*x + 2*c2*x + c1;		//the value of pitch
 			xx=x-f/k;
 		}
+		
 		if(fabs(x) < 15.1)	//if jump out of the loop because of finding the right answer
 		{
-			flag = 1;
-			for(j=0; j<answer_length; j++)
-			{
-				if( (s[j]-xx) < (1*10e-4) )
-					flag = 0;
-			}
-			if(flag == 1)	//judge if it is a new answer
-			{
-				s[answer_length] = xx;	//if new, store it
-				answer_length++;	//answer_length is useful, it needs return
-			}
+			printf("answer = %.4f\n",x);
+			sol = xx;
+			break;
 		}
 		x = temp_x - 3.0;	//start another loop
 	}
 
-	for(i=0; i<answer_length; i++)
+
+	if(sol != 0)	//compute the 1_2 answer
 	{
-		if(s[i]!=0)	//compute the 1_2 answer
-		{
-			printf("s = %.4f\n",s[i]);
-			k_BM[i] = (-yB)/(s[i]-xB);
-			d0 = xC*xC + (k_BM[i]*s[i])*(k_BM[i]*s[i]) - r*r;
-			d1 = -2*(xC + k_BM[i]*k_BM[i]*s[i]);
-			d2 = k_BM[i]*k_BM[i] + 1;
-			delta = d1*d1 - 4*d0*d2;
-			x1 = (-d1 + sqrt(delta))/(2*d2);
-			x2 = (-d1 - sqrt(delta))/(2*d2);
-			if((x1-xB) < 10e-5)
-				xP[i] = x2;
-			else
-				xP[i] = x1;
-			printf("xP = %.4f\n",xP[i]);
-			yP[i] = k_BM[i] * (xP[i]-s[i]);
-			printf("yP = %.4f\n\n",yP[i]);
-		}
+		printf("sol = %.4f\n",sol);
+		k_BM = (-yB)/(sol-xB);
+		d0 = xC*xC + (k_BM*sol)*(k_BM*sol) - r*r;
+		d1 = -2*(xC + k_BM*k_BM*sol);
+		d2 = k_BM*k_BM + 1;
+		delta = d1*d1 - 4*d0*d2;
+		x1 = (-d1 + sqrt(delta))/(2*d2);
+		x2 = (-d1 - sqrt(delta))/(2*d2);
+		if((x1-xB) < 10e-5)
+			xP = x2;
+		else
+			xP = x1;
+		printf("xP = %.4f\n",xP);
+		yP = k_BM * (xP-sol);
+		printf("yP = %.4f\n\n",yP);
+		return OK;
 	}
-	return answer_length;
+	else
+		return ERROR;
 }
 
-void turn_coordinate(struct cor_to_ball_s *answer, int len)
+void turn_coordinate(struct cor_to_ball_s *answer)
 {
 	double angle_coordinate;
-	int i;
 
-	for(i=0; i<len; i++)	//turn an angle
-	{
-		if(s[i]!=0)
-		{
-			angle_coordinate = asin(s[i]/d_MO);
-			answer->corP_z[i] = -xP[i] * cos(angle_coordinate);
-			answer->corP_x[i] = -xP[i] * sin(angle_coordinate);
-			answer->corP_y[i] = yP[i];		
-		}
-	}
-	//I need to choose the correct answer from the four answer
-	 
+	angle_coordinate = asin(sol/d_MO);
+	answer->corP_z = xP * cos(angle_coordinate);
+	answer->corP_x = xP * sin(angle_coordinate);
+	answer->corP_y = yP;		
 }
 
 
