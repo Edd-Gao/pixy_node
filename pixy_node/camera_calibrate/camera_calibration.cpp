@@ -2,6 +2,7 @@
 #include <sstream>
 #include <time.h>
 #include <stdio.h>
+#include <string>
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
@@ -363,16 +364,19 @@ int main(int argc, char* argv[])
             getOptimalNewCameraMatrix(cameraMatrix, distCoeffs, imageSize, 1, imageSize, 0),
             imageSize, CV_16SC2, map1, map2);
 
+        std::string filename;
+
         for(int i = 0; i < (int)s.imageList.size(); i++ )
         {
+            stringstream ss;
             view = imread(s.imageList[i], 1);
             if(view.empty())
                 continue;
             remap(view, rview, map1, map2, INTER_LINEAR);
             imshow("Image View", rview);
-            char c = (char)waitKey();
-            if( c  == ESC_KEY || c == 'q' || c == 'Q' )
-                break;
+            ss<<"undistorted_images/image" << i << ".png";
+            filename =ss.str();
+            imwrite(filename, rview);
         }
     }
 
