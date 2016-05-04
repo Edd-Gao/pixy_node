@@ -42,14 +42,18 @@ extern "C"{
 #define PIXY_RCS_TILT_CHANNEL       1
 
 // PID control parameters //
-#define PAN_PROPORTIONAL_GAIN     400
-#define PAN_DERIVATIVE_GAIN       300
+#define PAN_PROPORTIONAL_GAIN     300
+#define PAN_DERIVATIVE_GAIN       90
 #define TILT_PROPORTIONAL_GAIN    500
 #define TILT_DERIVATIVE_GAIN      400
 
 static int width = 640;
 static int height = 480;
 static int distance = 600;
+uint16_t blocks_x = 0;
+uint16_t blocks_y = 0;
+uint16_t blocks_x_ave = 0;
+uint16_t blocks_y_ave = 0;
 
 // Pixy Block Buffer //
 struct Block  blocks [BLOCK_BUFFER_SIZE];
@@ -176,9 +180,18 @@ int main(int argc, char *  argv[])
     if (blocks_copied>0) {
       // Calculate the difference between the   //
       // center of Pixy's focus and the target. //
+      blocks_x = 0;
+      blocks_y = 0;
+      for(int k=0; k<blocks_copied; k++)
+      	 {
+      		 blocks_x = blocks_x + blocks[k].x;
+      		 blocks_y = blocks_y + blocks[k].y;
+      	 }
+      	 blocks_x_ave = blocks_x/blocks_copied;
+      	 blocks_y_ave = blocks_y/blocks_copied;
 
-      pan_error  = PIXY_X_CENTER - blocks[0].x;
-      tilt_error = blocks[0].y - PIXY_Y_CENTER;
+        pan_error  = PIXY_X_CENTER - blocks_x_ave;
+        tilt_error = blocks_y_ave - PIXY_Y_CENTER;
 
       // Apply corrections to the pan/tilt with the goal //
       // of putting the target in the center of          //
@@ -238,10 +251,7 @@ int main(int argc, char *  argv[])
       }
 
       PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);
-      for(int i=0; i<4; i++)
-          {
-              printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.corP_x[i], calculated_position_coordinate.corP_y[i], calculated_position_coordinate.corP_z[i]);
-          }
+      printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.corP_x, calculated_position_coordinate.corP_y, calculated_position_coordinate.corP_z);
 
     }
 
