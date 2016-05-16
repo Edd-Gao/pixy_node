@@ -224,35 +224,41 @@ int main(int argc, char *  argv[])
         if(blocks[j].signature == 1){
           if(blocks[j].x > max){
             max_j = j;
+            max = blocks[j].x;
           }
           if(blocks[j].x < min){
             min_j = j;
+            min = blocks[j].x;
           }
         }
       }
       for(int j=0; j<4; j++){
         if(blocks[j].signature == 2){
-          camera_raw_coordinates.m_coordinate[0] = blocks[j].x;
-          camera_raw_coordinates.m_coordinate[1] = blocks[j].y;
+          camera_raw_coordinates.m_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+          camera_raw_coordinates.m_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
         }
         else if(j == min_j){
-          camera_raw_coordinates.l_coordinate[0] = blocks[j].x;
-          camera_raw_coordinates.l_coordinate[1] = blocks[j].y;
+          camera_raw_coordinates.l_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+          camera_raw_coordinates.l_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
         }
         else if(j == max_j){
-          camera_raw_coordinates.s_coordinate[0] = blocks[j].x;
-          camera_raw_coordinates.s_coordinate[1] = blocks[j].y;
+          camera_raw_coordinates.s_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+          camera_raw_coordinates.s_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
         }
         else{
-          camera_raw_coordinates.r_coordinate[0] = blocks[j].x;
-          camera_raw_coordinates.r_coordinate[1] = blocks[j].y;
+          camera_raw_coordinates.r_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+          camera_raw_coordinates.r_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
         }
 
       }
 
       PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);
       printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.corP_x, calculated_position_coordinate.corP_y, calculated_position_coordinate.corP_z);
-
+      
+      printf("L:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.l_coordinate[0],camera_raw_coordinates.l_coordinate[1]);
+      printf("R:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.r_coordinate[0],camera_raw_coordinates.r_coordinate[1]);
+      printf("S:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.s_coordinate[0],camera_raw_coordinates.s_coordinate[1]);
+      printf("M:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.m_coordinate[0],camera_raw_coordinates.m_coordinate[1]);
     }
 
 /*    if(blocks_copied == 4 && ALL_DIFFERENT(blocks[0].signature, blocks[1].signature, blocks[2].signature, blocks[3].signature)){
@@ -279,7 +285,7 @@ int main(int argc, char *  argv[])
 
 
 
-    if(frame_index % 50 == 0) {
+    /*if(frame_index % 50 == 0) {
       // Display received blocks //
       printf("frame %d:\n", frame_index);
       for(index = 0; index != blocks_copied; ++index) {
@@ -291,7 +297,7 @@ int main(int argc, char *  argv[])
                blocks[index].height);
       }
       fflush(stdout);
-    }
+    }*/
 
     frame_index++;
   }
