@@ -6,11 +6,11 @@ static int screen_Wid = 0;
 static int camera_Dist= 0;       //define the camera parameters
 
 static const double pi = 3.1416;
-static const int d_LR = 20;
-static const int d_MO = 15;
+static const int d_LR = 26;
+static const int d_MO = 16;
 static const int OK = 1;	//maybe defined in a head file.
 static const int ERROR = -1;	//can be deleted later
-static const int yR = 10;	//yR equals the half of d_LR. yR=d_LR/2
+static const int yR = 13;	//yR equals the half of d_LR. yR=d_LR/2
 static double xC, r, xB, yB;
 static double sol = 0;	//store the result of 1_4 function
 static double xP = 0, yP = 0;	//store the result of P in a certain coordinate
@@ -76,7 +76,7 @@ int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct co
     double vector_P_Ri[3];	//vector P->Ri
 	double vector_P_Li[3];	//vector P->Li
 	double vector_P_Mi[3];	//vector P->Mi
-	double vector_P_A[3];	//A是P_Ri_Li平面上一点，满足直线A_Mi垂直P_Ri_Li平面
+	double vector_P_A[3];	//A锟斤拷P_Ri_Li平锟斤拷锟斤拷一锟姐，锟斤拷锟斤拷直锟斤拷A_Mi锟斤拷直P_Ri_Li平锟斤拷
 	double n[3];
 	double Za, Xa, Ya;
 	double angle_a, angle_b, angle_r;

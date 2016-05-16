@@ -47,9 +47,9 @@ extern "C"{
 #define TILT_PROPORTIONAL_GAIN    500
 #define TILT_DERIVATIVE_GAIN      400
 
-static int width = 640;
-static int height = 480;
-static int distance = 600;
+static int width = 318;
+static int height = 198;
+static int distance = 240;
 uint16_t blocks_x = 0;
 uint16_t blocks_y = 0;
 uint16_t blocks_x_ave = 0;
@@ -216,7 +216,7 @@ int main(int argc, char *  argv[])
     }
 
     //excute position calculation when found 4 blocks
-    int max=0, min=640;
+    int max=0, min=320;
     int max_j=0, min_j=0;
     if(blocks_copied == 4 && (blocks[0].signature + blocks[1].signature + blocks[2].signature + blocks[3].signature)==5){
 
@@ -232,20 +232,20 @@ int main(int argc, char *  argv[])
       }
       for(int j=0; j<4; j++){
         if(blocks[j].signature == 2){
-          camera_raw_coordinates.m_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-          camera_raw_coordinates.m_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
-        }
-        else if(j == max_j){
-          camera_raw_coordinates.l_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-          camera_raw_coordinates.l_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+          camera_raw_coordinates.m_coordinate[0] = blocks[j].x;
+          camera_raw_coordinates.m_coordinate[1] = blocks[j].y;
         }
         else if(j == min_j){
-          camera_raw_coordinates.s_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-          camera_raw_coordinates.s_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+          camera_raw_coordinates.l_coordinate[0] = blocks[j].x;
+          camera_raw_coordinates.l_coordinate[1] = blocks[j].y;
+        }
+        else if(j == max_j){
+          camera_raw_coordinates.s_coordinate[0] = blocks[j].x;
+          camera_raw_coordinates.s_coordinate[1] = blocks[j].y;
         }
         else{
-          camera_raw_coordinates.r_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-          camera_raw_coordinates.r_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
+          camera_raw_coordinates.r_coordinate[0] = blocks[j].x;
+          camera_raw_coordinates.r_coordinate[1] = blocks[j].y;
         }
 
       }
