@@ -53,7 +53,7 @@ int Set_distance_of_MO(int *value)
 	    this function's name is setting the distance of LR, but LR is used for only once, yR is the useful parameter
 	    so I just set yR's value and use yR
 	    from the outside, you just need to input the distance of LR
-	parameter:
+	parammeter:
 	    value is the value of LR
 */
 int Set_distance_of_LR(int *value)
