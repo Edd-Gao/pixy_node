@@ -1,16 +1,16 @@
 #include "drone_loc.h"
 #include "MOT.h"	//the library from Likun
 
-static int screen_Len = 0;
+static int screen_Len = 0;      //define the camera parameters
 static int screen_Wid = 0;
-static int camera_Dist= 0;       //define the camera parameters
+static int camera_Dist= 0;
+static int d_MO = 0;			//define the distance of balls
+static double yR = 0.0;			//yR equals the half of d_LR. yR=d_LR/2
+
 
 static const double pi = 3.1416;
-static const int d_LR = 26;
-static const int d_MO = 16;
 static const int OK = 1;	//maybe defined in a head file.
 static const int ERROR = -1;	//can be deleted later
-static const int yR = 13;	//yR equals the half of d_LR. yR=d_LR/2
 static double xC, r, xB, yB;
 static double sol = 0;	//store the result of 1_4 function
 static double xP = 0, yP = 0;	//store the result of P in a certain coordinate
@@ -43,6 +43,25 @@ int SetParameter(int parameter, int *value)
 	}
 	return (ret);
 }
+
+int Set_distance_of_MO(int *value)
+{
+	d_MO = *value;
+}
+
+/* 	brief:
+	    this function's name is setting the distance of LR, but LR is used for only once, yR is the useful parameter
+	    so I just set yR's value and use yR
+	    from the outside, you just need to input the distance of LR
+	parameter:
+	    value is the value of LR
+*/
+int Set_distance_of_LR(int *value)
+{
+	yR = (double)*value/2;	//turn int into double
+}
+
+
 
 
 int GetParameter(int parameter, int *value)
@@ -215,6 +234,7 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 
 void turn_coordinate(struct cor_to_ball_s *answer)
 {
+	//this is the angle we want. we can use it to estimate the angle of pixy
 	double angle_coordinate;
 
 	angle_coordinate = asin(sol/d_MO);

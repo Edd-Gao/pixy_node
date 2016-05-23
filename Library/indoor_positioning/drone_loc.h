@@ -23,6 +23,9 @@ struct cor_to_ball_s{
 extern int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct cor_to_ball_s *solution);
 extern int SetParameter(int parameter, int *value);
 extern int GetParameter(int parameter, int *value);
+extern int Set_distance_of_MO(int *value);
+extern int Set_distance_of_LR(int *value);
+
 
 
 #endif
