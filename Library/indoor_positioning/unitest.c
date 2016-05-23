@@ -1,6 +1,6 @@
 //#include <stdio.h>
 #include "drone_loc.h"
-#include "mot.h"
+#include "MOT.h"
 
 #define pi 3.1416
 

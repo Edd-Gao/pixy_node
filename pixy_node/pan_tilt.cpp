@@ -46,10 +46,14 @@ extern "C"{
 #define PAN_DERIVATIVE_GAIN       90
 #define TILT_PROPORTIONAL_GAIN    500
 #define TILT_DERIVATIVE_GAIN      400
+#define camera_up_to_down		  0
+#define camera_down_to_up		  1
 
 static int width = 318;
 static int height = 198;
 static int distance = 240;
+static int distance_of_MO = 15;
+static int distance_of_LR = 26;
 uint16_t blocks_x = 0;
 uint16_t blocks_y = 0;
 uint16_t blocks_x_ave = 0;
@@ -154,9 +158,11 @@ int main(int argc, char *  argv[])
   }
 
   //set the parameter for the position calculation
-  SetParameter(drone_screen_Len,&width);
-  SetParameter(drone_screen_Wid,&height);
-  SetParameter(drone_camera_Dist,&distance);
+  Set_screen_Len(&width);
+  Set_screen_Wid(&height);
+  Set_camera_Dist(&distance);
+  Set_distance_of_MO(&distance_of_MO);
+  Set_distance_of_LR(&distance_of_LR);
 
   object_coordinate_s camera_raw_coordinates;
   cor_to_ball_s calculated_position_coordinate;
@@ -232,24 +238,55 @@ int main(int argc, char *  argv[])
           }
         }
       }
-      for(int j=0; j<4; j++){
-        if(blocks[j].signature == 2){
-          camera_raw_coordinates.m_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-          camera_raw_coordinates.m_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
-        }
-        else if(j == min_j){
-          camera_raw_coordinates.l_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-          camera_raw_coordinates.l_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
-        }
-        else if(j == max_j){
-          camera_raw_coordinates.s_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-          camera_raw_coordinates.s_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
-        }
-        else{
-          camera_raw_coordinates.r_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-          camera_raw_coordinates.r_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
-        }
 
+      int camera_posture = camera_up_to_down;
+      if(camera_posture == camera_up_to_down)	//if zheng fan xiang
+      {
+	for(int j=0; j<4; j++){
+          if(blocks[j].signature == 2){
+            camera_raw_coordinates.m_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.m_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+          else if(j == min_j){		//then the smallest one is l point
+            camera_raw_coordinates.l_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.l_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+          else if(j == max_j){
+            camera_raw_coordinates.s_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.s_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+          else{
+            camera_raw_coordinates.r_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.r_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+
+        }
+      }
+      else if(camera_posture == camera_down_to_up)	//if the reverse direction
+      {
+        for(int j=0; j<4; j++){
+          if(blocks[j].signature == 2){
+            camera_raw_coordinates.m_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.m_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+          else if(j == min_j){		//then the smallest x is the s point
+            camera_raw_coordinates.s_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.s_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+          else if(j == max_j){
+            camera_raw_coordinates.l_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.l_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+          else{
+            camera_raw_coordinates.r_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
+            camera_raw_coordinates.r_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+          }
+
+        }
+      }
+      else
+      {
+	printf("the setting of camera is wrong\n");
       }
 
       PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);

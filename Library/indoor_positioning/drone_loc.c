@@ -22,29 +22,22 @@ double dotproduct(double x[], double y[]);
 double norm(double a[]);
 
 
-
-int SetParameter(int parameter, int *value)
+void Set_screen_Len(int *value)
 {
-	int ret = OK;
-	switch (parameter)
-	{
-		case drone_screen_Len:
-			screen_Len = *value;
-			break;
-		case drone_screen_Wid:
-			screen_Wid = *value;
-			break;
-		case drone_camera_Dist:
-			camera_Dist = *value;
-			break;
-		default:
-			ret = ERROR;	//I should set it to -1 or 0 ?
-			break;
-	}
-	return (ret);
+	screen_Len = *value;
 }
 
-int Set_distance_of_MO(int *value)
+void Set_screen_Wid(int *value)
+{
+	screen_Wid = *value;
+}
+
+void Set_camera_Dist(int *value)
+{
+	camera_Dist = *value;
+}
+
+void Set_distance_of_MO(int *value)
 {
 	d_MO = *value;
 }
@@ -56,34 +49,45 @@ int Set_distance_of_MO(int *value)
 	parameter:
 	    value is the value of LR
 */
-int Set_distance_of_LR(int *value)
+void Set_distance_of_LR(int *value)
 {
 	yR = (double)*value/2;	//turn int into double
 }
 
-
-
-
-int GetParameter(int parameter, int *value)
+void Get_screen_Len(int *value)
 {
-	int ret = OK;
-	switch (parameter)
-	{
-		case drone_screen_Len:
-			*value = screen_Len;
-			break;
-		case drone_screen_Wid:
-			*value = screen_Wid;
-			break;
-		case drone_camera_Dist:
-			*value = camera_Dist;
-			break;
-		default:
-			ret = ERROR;	//I should set it to -1 or 0 ?
-			break;
-	}
-	return (ret);
+	*value = screen_Len;
 }
+
+void Get_screen_Wid(int *value)
+{
+	*value = screen_Wid;
+}
+
+void Get_camera_Dist(int *value)
+{
+	*value = camera_Dist;
+}
+
+void Get_distance_of_MO(int *value)
+{
+	*value = d_MO;
+}
+
+/* 	brief:
+	    this function's name is setting the distance of LR, but LR is used for only once, yR is the useful parameter
+	    so I just set yR's value and use yR
+
+	    from the outside, you just need to input the distance of LR
+	parameter:
+	    value is the value of LR
+
+*/
+void Get_distance_of_LR(int *value)
+{
+	*value = (int)yR*2;	//turn double into int
+}
+
 
 int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct cor_to_ball_s *solution)
 {
@@ -234,13 +238,15 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 
 void turn_coordinate(struct cor_to_ball_s *answer)
 {
-	//this is the angle we want. we can use it to estimate the angle of pixy
-	double angle_coordinate;
 
-	angle_coordinate = asin(sol/d_MO);
-	answer->corP_z = xP * cos(angle_coordinate);
-	answer->corP_x = xP * sin(angle_coordinate);
-	answer->corP_y = yP;		
+	double angle;
+
+	angle = asin(sol/d_MO);
+	answer->corP_z = xP * cos(angle);
+	answer->corP_x = xP * sin(angle);
+	answer->corP_y = yP;
+	answer->angle_coordinate = angle;  //save the angle to struct
+	printf("the angle between pixy and balls is %.2f", angle);		
 }
 
 

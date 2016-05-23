@@ -15,11 +15,6 @@ struct object_coordinate_s{
  int s_coordinate[2];
  int m_coordinate[2];
 
-/* int l_coordinatex, l_coordinatey;
- int r_coordinatex, r_coordinatey;
- int s_coordinatex, s_coordinatey;
- int m_coordinatex, m_coordinatey;
- */
 };
 
 //int setHSVThreshold(Scalar min, Scalar max);
