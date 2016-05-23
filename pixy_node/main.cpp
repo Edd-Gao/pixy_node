@@ -20,6 +20,10 @@
 #include <string.h>
 #include "pixy.h"
 
+//ros related includes
+#include "ros/ros.h"
+#include "geometry_msgs/Pose.h"
+
 //include c header files
 #ifdef __cplusplus
 extern "C"{
@@ -135,6 +139,15 @@ int main(int argc, char *  argv[])
   int     blocks_copied;
   int     index;
 
+  ros::init(argc, argv, "Pixy_Node");
+
+  ros::NodeHandle n;
+
+  ros::Publisher pose_pub = n.advertise<geometry_msgs::Pose>("pose",1000);
+
+  ros::Rate loop_rate(10);
+
+  geometry_msgs::Pose msg;
 
   printf("+ Pixy Tracking Demo Started +\n");
   fflush(stdout);
@@ -296,6 +309,13 @@ int main(int argc, char *  argv[])
       printf("R:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.r_coordinate[0],camera_raw_coordinates.r_coordinate[1]);
       printf("S:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.s_coordinate[0],camera_raw_coordinates.s_coordinate[1]);
       printf("M:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.m_coordinate[0],camera_raw_coordinates.m_coordinate[1]);
+
+      msg.position.x = calculated_position_coordinate.corP_x;
+      msg.position.y = calculated_position_coordinate.corP_y;
+      msg.position.z = calculated_position_coordinate.corP_z;
+
+      pose_pub.publish(msg);
+
     }
 
 /*    if(blocks_copied == 4 && ALL_DIFFERENT(blocks[0].signature, blocks[1].signature, blocks[2].signature, blocks[3].signature)){
@@ -337,6 +357,10 @@ int main(int argc, char *  argv[])
     }*/
 
     frame_index++;
+
+    ros::spinOnce();
+
+    loop_rate.sleep();
   }
   pixy_close();
 
