@@ -1,8 +1,8 @@
 cmake_minimum_required (VERSION 2.8)
 project (pixy_node CXX C)
 
-set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake" )
-set (LIBPOSITIONING_LIBRARY "${CMAKE_SOURCE_DIR}/lib/indoor_positioning")
+set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "~/capstone/Swarm/drone-control/src/position_estimate/pixy_node/cmake" )
+set (LIBPOSITIONING_LIBRARY "~/capstone/Swarm/drone-control/src/position_estimate/pixy_node/lib/indoor_positioning")
 
 find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
