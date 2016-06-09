@@ -9,7 +9,7 @@
 #ifndef MOT_H
 #define MOT_H
 
-struct object_coordinate_s{
+struct image_coordinate_s{
  int l_coordinate[2];
  int r_coordinate[2];
  int s_coordinate[2];

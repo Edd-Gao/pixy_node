@@ -5,11 +5,11 @@
 #ifndef DRONE_LOC_H
 #define DRONE_LOC_H
 
-struct cor_to_ball_s{
-	double corP_x;
-	double corP_y;
-	double corP_z;
-	double angle_coordinate;  //the angle between the two coordinate
+struct reference_coordinate_s{
+	double x;
+	double y;
+	double z;
+	double referenceAngle;  //the angle between the two coordinate
 };
 
 /*brief
@@ -17,17 +17,17 @@ struct cor_to_ball_s{
 	by inputting the three angles.
 	it will return the address of struct
 */
-extern int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct cor_to_ball_s *solution);
-extern void Set_screen_Len(int *value);
-extern void Set_screen_Wid(int *value);
-extern void Set_camera_Dist(int *value);
-extern void Set_distance_of_MO(int *value);
-extern void Set_distance_of_LR(int *value);
-extern void Get_screen_Len(int *value);
-extern void Get_screen_Wid(int *value);
-extern void Get_camera_Dist(int *value);
-extern void Get_distance_of_MO(int *value);
-extern void Get_distance_of_LR(int *value);
+extern int Image_To_Reference_Coordinate(struct image_coordinate_s imgCoordinate, struct reference_coordinate_s *refCoordinate);
+extern void Set_Screen_Len(int *value);
+extern void Set_Screen_Wid(int *value);
+extern void Set_Camera_Distance(int *value);
+extern void Set_Distance_of_MO(int *value);
+extern void Set_Distance_of_LR(int *value);
+extern int Get_Screen_Len();
+extern int Get_Screen_Wid();
+extern int Get_Camera_Dist();
+extern int Get_Distance_of_MO();
+extern int Get_Distance_of_LR();
 
 
 #endif

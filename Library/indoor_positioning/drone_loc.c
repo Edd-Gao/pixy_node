@@ -1,45 +1,48 @@
 #include "drone_loc.h"
-#include "MOT.h"	//the library from Likun
 
-static int screen_Len = 0;      //define the camera parameters
-static int screen_Wid = 0;
-static int camera_Dist= 0;
-static int d_MO = 0;			//define the distance of balls
+static int screenLen = 0;      //define the camera parameters
+static int screenWid = 0;
+static int cameraDist= 0;
+static int dMo = 0;			//define the distance of balls
 static double yR = 0.0;			//yR equals the half of d_LR. yR=d_LR/2
 
 
 static const double pi = 3.1416;
-static const int OK = 1;	//maybe defined in a head file.
-static const int ERROR = -1;	//can be deleted later
+
+//maybe defined in a head file, can be deleted later
+static const int OK = 1;
+static const int ERROR = -1;
+
 static double xC, r, xB, yB;
 static double sol = 0;	//store the result of 1_4 function
 static double xP = 0, yP = 0;	//store the result of P in a certain coordinate
 
-int solve_1_4(double angle_1, double angle_2, double angle_3);
-void turn_coordinate(struct cor_to_ball_s * answer);
-void substraction(double a[], double b[], double diff[]);
-double dotproduct(double x[], double y[]);
-double norm(double a[]);
+int Solve_1_4(double angleA, double angleB, double angleR);
+void Turn_Coordinate(struct reference_coordinate_s *answer);
+void Substraction(double *a, double *b, double *diff);
+double Dotproduct(double *x, double *y);
+double Norm(double *a);
 
 
-void Set_screen_Len(int *value)
+void Set_Screen_Len(int *value)
 {
-	screen_Len = *value;
+	screenLen = *value;
 }
 
-void Set_screen_Wid(int *value)
+void Set_Screen_Wid(int *value)
 {
-	screen_Wid = *value;
+	screenWid = *value;
 }
 
-void Set_camera_Dist(int *value)
+//camera distance is the distance between sensor level and the lens level
+void Set_Camera_Distance(int *value)
 {
-	camera_Dist = *value;
+	cameraDist = *value;
 }
 
-void Set_distance_of_MO(int *value)
+void Set_Distance_of_MO(int *value)
 {
-	d_MO = *value;
+	dMo = *value;
 }
 
 /* 	brief:
@@ -49,29 +52,29 @@ void Set_distance_of_MO(int *value)
 	parameter:
 	    value is the value of LR
 */
-void Set_distance_of_LR(int *value)
+void Set_Distance_of_LR(int *value)
 {
 	yR = (double)*value/2;	//turn int into double
 }
 
-void Get_screen_Len(int *value)
+int Get_Screen_Len()
 {
-	*value = screen_Len;
+	return screenLen;
 }
 
-void Get_screen_Wid(int *value)
+int Get_Screen_Wid()
 {
-	*value = screen_Wid;
+	return screenWid;
 }
 
-void Get_camera_Dist(int *value)
+int Get_Camera_Dist()
 {
-	*value = camera_Dist;
+	return cameraDist;
 }
 
-void Get_distance_of_MO(int *value)
+int Get_Distance_of_MO()
 {
-	*value = d_MO;
+	return dMo;
 }
 
 /* 	brief:
@@ -83,18 +86,18 @@ void Get_distance_of_MO(int *value)
 	    value is the value of LR
 
 */
-void Get_distance_of_LR(int *value)
+int Get_Distance_of_LR()
 {
-	*value = (int)yR*2;	//turn double into int
+	return (int)yR*2;	//turn double into int
 }
 
 
-int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct cor_to_ball_s *solution)
+int Image_To_Reference_Coordinate(struct image_coordinate_s imgCoordinate, struct reference_coordinate_s *refCoordinate)
 {
-    double camera_P[3]={screen_Len/2, screen_Wid/2, camera_Dist};         //the coordinates of P point
-    double screen_Ri[3]={photo.r_coordinate[0],photo.r_coordinate[1],0};        //the coordinates of Ri point
-    double screen_Li[3]={photo.l_coordinate[0],photo.l_coordinate[1],0};        //the coordinates of Li point
-    double screen_Mi[3]={photo.m_coordinate[0],photo.m_coordinate[1],0};        //the coordinates of Mi point
+    double camera_P[3]={screenLen/2, screenWid/2, cameraDist};         //the coordinates of P point
+    double screen_Ri[3]={imgCoordinate.r_coordinate[0],imgCoordinate.r_coordinate[1],0};        //the coordinates of Ri point
+    double screen_Li[3]={imgCoordinate.l_coordinate[0],imgCoordinate.l_coordinate[1],0};        //the coordinates of Li point
+    double screen_Mi[3]={imgCoordinate.m_coordinate[0],imgCoordinate.m_coordinate[1],0};        //the coordinates of Mi point
     
     double vector_P_Ri[3];	//vector P->Ri
 	double vector_P_Li[3];	//vector P->Li
@@ -105,37 +108,37 @@ int PointInThePhoto_PositionOfCamera(struct object_coordinate_s photo, struct co
 	double angle_a, angle_b, angle_r;
 	int function_state = 0;
 
-    substraction(camera_P, screen_Ri, vector_P_Ri);       //the coordinates of vector P_Ri
-    substraction(camera_P, screen_Li, vector_P_Li);       //the coordinates of vector P_Li    
-    substraction(camera_P, screen_Mi, vector_P_Mi);       //the coordinates of vector P_Mi
+	Substraction(camera_P, screen_Ri, vector_P_Ri);       //the coordinates of vector P_Ri
+	Substraction(camera_P, screen_Li, vector_P_Li);       //the coordinates of vector P_Li
+	Substraction(camera_P, screen_Mi, vector_P_Mi);       //the coordinates of vector P_Mi
  
 	n[0] = vector_P_Ri[1] * vector_P_Li[2] - vector_P_Ri[2] * vector_P_Li[1];
     n[1] = vector_P_Ri[2] * vector_P_Li[0] - vector_P_Ri[0] * vector_P_Li[2];
     n[2] = vector_P_Ri[0] * vector_P_Li[1] - vector_P_Ri[1] * vector_P_Li[0];         //the normal vector of plane P_Ri_Li
-	Za = ( n[0]*n[2]*(screen_Len/2-photo.m_coordinate[0]) + n[1]*n[2]*(screen_Wid/2-photo.m_coordinate[1]) + n[2]*n[2]*camera_Dist ) / (n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
-	Xa = n[0]/n[2]*Za + photo.m_coordinate[0];
-	Ya = n[1]/n[2]*Za + photo.m_coordinate[1];
+	Za = ( n[0]*n[2]*(screenLen/2-imgCoordinate.m_coordinate[0]) + n[1]*n[2]*(screenWid/2-imgCoordinate.m_coordinate[1]) + n[2]*n[2]*cameraDist ) / (n[0]*n[0] + n[1]*n[1] + n[2]*n[2]);
+	Xa = n[0]/n[2]*Za + imgCoordinate.m_coordinate[0];
+	Ya = n[1]/n[2]*Za + imgCoordinate.m_coordinate[1];
 	//A as a point belong to plane P_Ri_Li, it makes vector A_Mi perpendicular to plane P_Ri_Li
-	//vector_P_A[3] = {Xa-screen_Len/2, Ya-screen_Wid/2, Za-camera_Dist };			  //the coordinates of vector P_A
-	vector_P_A[0] = Xa-screen_Len/2; vector_P_A[1] = Ya-screen_Wid/2; vector_P_A[2] = Za-camera_Dist;
+	//vector_P_A[3] = {Xa-screenLen/2, Ya-screenWid/2, Za-cameraDist };			  //the coordinates of vector P_A
+	vector_P_A[0] = Xa-screenLen/2; vector_P_A[1] = Ya-screenWid/2; vector_P_A[2] = Za-cameraDist;
 	
-	angle_a = acos( dotproduct(vector_P_Ri, vector_P_Li)/( norm(vector_P_Ri) * norm(vector_P_Li) ) );	   //calculate the value of angle a
-	angle_b = acos( dotproduct(vector_P_Ri, vector_P_A)/( norm(vector_P_Ri) * norm(vector_P_A) ) );	  //calculate the value of angle b
-	angle_r = asin( dotproduct(vector_P_Mi, n)/( norm(vector_P_Mi) * norm(n) ) );	  //calculate the value of angle r
-	function_state = solve_1_4(angle_a, angle_b, angle_r);
+	angle_a = acos(Dotproduct(vector_P_Ri, vector_P_Li)/(Norm(vector_P_Ri) * Norm(vector_P_Li) ) );	   //calculate the value of angle a
+	angle_b = acos(Dotproduct(vector_P_Ri, vector_P_A)/(Norm(vector_P_Ri) * Norm(vector_P_A) ) );	  //calculate the value of angle b
+	angle_r = asin(Dotproduct(vector_P_Mi, n)/(Norm(vector_P_Mi) * Norm(n) ) );	  //calculate the value of angle r
+	function_state = Solve_1_4(angle_a, angle_b, angle_r);
 	if(function_state == OK)
 	{
-		turn_coordinate( solution );
+		Turn_Coordinate(refCoordinate);
 	}
 	else
 	{
-		printf("cannot locate the drone\n");
+		return ERROR;
 	}
     return OK;
 }
 
 
-void substraction(double a[], double b[], double diff[])
+void Substraction(double *a, double *b, double *diff)
 {
 	int i=0;
     for (i = 0; i < 3; i++) {
@@ -143,7 +146,7 @@ void substraction(double a[], double b[], double diff[])
     }
 }                   //calculate vector coordinates
 
-double dotproduct(double x[], double y[])
+double Dotproduct(double *x, double *y)
 {
     double dot = 0;
 	int i=0;
@@ -153,7 +156,7 @@ double dotproduct(double x[], double y[])
     return dot;
 }                  //calculate dot product
 
-double norm(double a[])
+double Norm(double *a)
 {
     double sum = 0;
 	int i = 0;
@@ -161,23 +164,23 @@ double norm(double a[])
         sum += pow(a[i], 2);
     }
     return sqrt(sum);
-}                  //calculate vector norm
+}                  //calculate vector Norm
 
 
-int solve_1_4(double angle_a, double angle_b, double angle_r)
+int Solve_1_4(double angleA, double angleB, double angleR)
 {
-	double	xC = yR/tan(angle_a);
-	double	r = yR/sin(angle_a);	//the radium of the circle
-	double	xB = xC - r*cos(2*angle_b-angle_a);
-	double	yB = -r*sin(2*angle_b-angle_a);
+	double	xC = yR/tan(angleA);
+	double	r = yR/sin(angleA);	//the radium of the circle
+	double	xB = xC - r*cos(2*angleB-angleA);
+	double	yB = -r*sin(2*angleB-angleA);
 
 	double	B2 = xB*xB + yB*yB;		//define some parameter help to compute
-	double	n = tan(angle_r) * tan(angle_r);
+	double	n = tan(angleR) * tan(angleR);
 	double	v = -2*xC*xB + B2;
 
-	double c0 = -(d_MO*d_MO) * B2 + n*v*v;
-	double c1 = (d_MO*d_MO) * xB*2 + 4*n*v*xC;
-	double c2 = B2 - (d_MO*d_MO) - 2*n*v + 4*n*xC*xC;
+	double c0 = -(dMo*dMo) * B2 + n*v*v;
+	double c1 = (dMo*dMo) * xB*2 + 4*n*v*xC;
+	double c2 = B2 - (dMo*dMo) - 2*n*v + 4*n*xC*xC;
 	double c3 = -(4*n*xC + 2*xB);
 	double c4 = n+1;
 
@@ -205,7 +208,6 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 		
 		if(fabs(x) < 15.1)	//if jump out of the loop because of finding the right answer
 		{
-			printf("answer = %.4f\n",x);
 			sol = xx;
 			break;
 		}
@@ -215,7 +217,6 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 
 	if(sol != 0)	//compute the 1_2 answer
 	{
-		printf("sol = %.4f\n",sol);
 		k_BM = (-yB)/(sol-xB);
 		d0 = xC*xC + (k_BM*sol)*(k_BM*sol) - r*r;
 		d1 = -2*(xC + k_BM*k_BM*sol);
@@ -227,26 +228,23 @@ int solve_1_4(double angle_a, double angle_b, double angle_r)
 			xP = x2;
 		else
 			xP = x1;
-		printf("xP = %.4f\n",xP);
 		yP = k_BM * (xP-sol);
-		printf("yP = %.4f\n\n",yP);
 		return OK;
 	}
 	else
 		return ERROR;
 }
 
-void turn_coordinate(struct cor_to_ball_s *answer)
+void Turn_Coordinate(struct reference_coordinate_s *answer)
 {
 
 	double angle;
 
-	angle = asin(sol/d_MO);
-	answer->corP_z = xP * cos(angle);
-	answer->corP_x = xP * sin(angle);
-	answer->corP_y = yP;
-	answer->angle_coordinate = angle;  //save the angle to struct
-	printf("the angle between pixy and balls is %.2f", angle);		
+	angle = asin(sol/dMo);
+	answer->z = xP * cos(angle);
+	answer->x = xP * sin(angle);
+	answer->y = yP;
+	answer->referenceAngle = angle;  //save the angle to struct
 }
 
 

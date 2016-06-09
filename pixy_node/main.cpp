@@ -15,14 +15,14 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <unistd.h>
 #include <signal.h>
-#include <string.h>
 #include "pixy.h"
 
 //ros related includes
 #include "ros/ros.h"
-#include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseStamped.h"
+#include "geometry_msgs/Vector3Stamped.h"
+#include "std_msgs/Int16.h"
 
 //include c header files
 #ifdef __cplusplus
@@ -34,8 +34,6 @@ extern "C"{
 #ifdef __cplusplus
 }
 #endif
-
-#define ALL_DIFFERENT(i1, i2, i3, i4)    (i1 != i2 && i1 != i3 && i1 != i4 && i2 != i3 && i2 != i4 && i3 != i4 )
 
 #define BLOCK_BUFFER_SIZE          4
 
@@ -50,14 +48,16 @@ extern "C"{
 #define PAN_DERIVATIVE_GAIN       90
 #define TILT_PROPORTIONAL_GAIN    500
 #define TILT_DERIVATIVE_GAIN      400
-#define camera_up_to_down		  0
-#define camera_down_to_up		  1
+#define CAMERA_ON_TOP		  0
+#define CAMERA_ON_BOTTOM		  1
+
+#define DT 20 //sample interval ms
 
 static int width = 318;
 static int height = 198;
 static int distance = 240;
-static int distance_of_MO = 15;
-static int distance_of_LR = 26;
+static int distanceOfMo = 15;
+static int distanceOfLr = 26;
 uint16_t blocks_x = 0;
 uint16_t blocks_y = 0;
 uint16_t blocks_x_ave = 0;
@@ -131,26 +131,41 @@ void gimbal_update(struct Gimbal *  gimbal, int32_t error)
 int main(int argc, char *  argv[])
 {
   int     pixy_init_status;
-  char    buf[128];
-  int     frame_index = 0;
   int     result;
   int     pan_error;
   int     tilt_error;
   int     blocks_copied;
-  int     index;
+
+  int camera_posture = CAMERA_ON_TOP;
+  reference_coordinate_s lastCorr;
+
+  /*if(argc == 2){
+    if("top" == argv[1]) {
+      camera_posture = CAMERA_ON_TOP;
+      ROS_INFO("camera on top");
+    }
+    else if("bottom" == argv[1]){
+      camera_posture = CAMERA_ON_BOTTOM;
+    ROS_INFO("camera on bottom");}
+  }*/
 
   ros::init(argc, argv, "Pixy_Node");
 
   ros::NodeHandle n;
 
-  ros::Publisher pose_pub = n.advertise<geometry_msgs::Pose>("pose",1000);
+  ros::Publisher pose_pub = n.advertise<geometry_msgs::PoseStamped>("pose",1000);
 
-  ros::Rate loop_rate(10);
+  ros::Publisher vel_pub = n.advertise<geometry_msgs::Vector3Stamped>("vel",1000);
 
-  geometry_msgs::Pose msg;
+  ros::Publisher angle_pub = n.advertise<std_msgs::Int16>("angle",1000);
 
-  printf("+ Pixy Tracking Demo Started +\n");
-  fflush(stdout);
+  ros::Rate loop_rate(1000 / DT);
+
+  geometry_msgs::PoseStamped pose;
+
+  geometry_msgs::Vector3Stamped vel;
+
+  std_msgs::Int16 refAngle;
 
   initialize_gimbals();
 
@@ -171,16 +186,16 @@ int main(int argc, char *  argv[])
   }
 
   //set the parameter for the position calculation
-  Set_screen_Len(&width);
-  Set_screen_Wid(&height);
-  Set_camera_Dist(&distance);
-  Set_distance_of_MO(&distance_of_MO);
-  Set_distance_of_LR(&distance_of_LR);
+  Set_Screen_Len(&width);
+  Set_Screen_Wid(&height);
+  Set_Camera_Distance(&distance);
+  Set_Distance_of_MO(&distanceOfMo);
+  Set_Distance_of_LR(&distanceOfLr);
 
-  object_coordinate_s camera_raw_coordinates;
-  cor_to_ball_s calculated_position_coordinate;
+  image_coordinate_s camera_raw_coordinates;
+  reference_coordinate_s calculated_position_coordinate;
 
-  while(run_flag) {
+  while(run_flag && ros::ok()) {
 
     // Wait for new blocks to be available //
     while(!pixy_blocks_are_new() && run_flag);
@@ -206,8 +221,8 @@ int main(int argc, char *  argv[])
       		 blocks_x = blocks_x + blocks[k].x;
       		 blocks_y = blocks_y + blocks[k].y;
       	 }
-      	 blocks_x_ave = blocks_x/blocks_copied;
-      	 blocks_y_ave = blocks_y/blocks_copied;
+      	 blocks_x_ave = (uint16_t) (blocks_x / blocks_copied);
+      	 blocks_y_ave = (uint16_t) (blocks_y / blocks_copied);
 
         pan_error  = PIXY_X_CENTER - blocks_x_ave;
         tilt_error = blocks_y_ave - PIXY_Y_CENTER;
@@ -219,14 +234,14 @@ int main(int argc, char *  argv[])
       gimbal_update(&pan, pan_error);
       gimbal_update(&tilt, tilt_error);
 
-      result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, pan.position);
+      result = pixy_rcs_set_position(PIXY_RCS_PAN_CHANNEL, (uint16_t) pan.position);
       if (result < 0) {
         printf("Error: pixy_rcs_set_position() [%d] ", result);
         pixy_error(result);
         fflush(stdout);
       }
 
-      result = pixy_rcs_set_position(PIXY_RCS_TILT_CHANNEL, tilt.position);
+      result = pixy_rcs_set_position(PIXY_RCS_TILT_CHANNEL, (uint16_t) tilt.position);
       if (result<0) {
         printf("Error: pixy_rcs_set_position() [%d] ", result);
         pixy_error(result);
@@ -252,111 +267,78 @@ int main(int argc, char *  argv[])
         }
       }
 
-      int camera_posture = camera_up_to_down;
-      if(camera_posture == camera_up_to_down)	//if zheng fan xiang
+      if(camera_posture == CAMERA_ON_TOP)	//if camera is upright on top
       {
 	for(int j=0; j<4; j++){
           if(blocks[j].signature == 2){
-            camera_raw_coordinates.m_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.m_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.m_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.m_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
           else if(j == min_j){		//then the smallest one is l point
-            camera_raw_coordinates.l_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.l_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.l_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.l_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
           else if(j == max_j){
-            camera_raw_coordinates.s_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.s_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.s_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.s_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
           else{
-            camera_raw_coordinates.r_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.r_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.r_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.r_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
 
         }
       }
-      else if(camera_posture == camera_down_to_up)	//if the reverse direction
+      else if(camera_posture == CAMERA_ON_BOTTOM)	//if the camera is bottom up
       {
         for(int j=0; j<4; j++){
           if(blocks[j].signature == 2){
-            camera_raw_coordinates.m_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.m_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.m_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.m_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
           else if(j == min_j){		//then the smallest x is the s point
-            camera_raw_coordinates.s_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.s_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.s_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.s_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
           else if(j == max_j){
-            camera_raw_coordinates.l_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.l_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.l_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.l_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
           else{
-            camera_raw_coordinates.r_coordinate[0] = blocks[j].x + 0.5 * blocks[j].width;
-            camera_raw_coordinates.r_coordinate[1] = blocks[j].y + 0.5 * blocks[j].height;
+            camera_raw_coordinates.r_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
+            camera_raw_coordinates.r_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
 
         }
       }
-      else
-      {
-	printf("the setting of camera is wrong\n");
-      }
+      Image_To_Reference_Coordinate(camera_raw_coordinates, &calculated_position_coordinate);
 
-      PointInThePhoto_PositionOfCamera(camera_raw_coordinates, &calculated_position_coordinate);
-      printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.corP_x, calculated_position_coordinate.corP_y, calculated_position_coordinate.corP_z);
-      
+      vel.vector.x = (calculated_position_coordinate.x - lastCorr.x) / DT;
+      vel.vector.y = (calculated_position_coordinate.y - lastCorr.y) / DT;
+      vel.vector.z = (calculated_position_coordinate.z - lastCorr.z) / DT;
+      vel.header.stamp.now();
+      lastCorr = calculated_position_coordinate;
+
+#ifdef DEBUG
+      printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.x, calculated_position_coordinate.y, calculated_position_coordinate.z);
       printf("L:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.l_coordinate[0],camera_raw_coordinates.l_coordinate[1]);
       printf("R:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.r_coordinate[0],camera_raw_coordinates.r_coordinate[1]);
       printf("S:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.s_coordinate[0],camera_raw_coordinates.s_coordinate[1]);
       printf("M:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.m_coordinate[0],camera_raw_coordinates.m_coordinate[1]);
+#endif
 
-      msg.position.x = calculated_position_coordinate.corP_x;
-      msg.position.y = calculated_position_coordinate.corP_y;
-      msg.position.z = calculated_position_coordinate.corP_z;
+      pose.pose.position.x = calculated_position_coordinate.x;
+      pose.pose.position.y = calculated_position_coordinate.y;
+      pose.pose.position.z = calculated_position_coordinate.z;
+      pose.header.stamp.now();
 
-      pose_pub.publish(msg);
+      refAngle.data = (int16_t)(calculated_position_coordinate.referenceAngle * 180 / 3.1415926 * 1000);
+
+      vel_pub.publish(vel);
+      pose_pub.publish(pose);
+      angle_pub.publish(refAngle);
 
     }
-
-/*    if(blocks_copied == 4 && ALL_DIFFERENT(blocks[0].signature, blocks[1].signature, blocks[2].signature, blocks[3].signature)){
-       //determine the l,m,r,s
-        for(int j=0; j<4; j++)
-        {
-            switch(blocks[j].signature)
-            {
-                case 1: camera_raw_coordinates.l_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-                             camera_raw_coordinates.l_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
-                             break;
-                case 2: camera_raw_coordinates.r_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-                             camera_raw_coordinates.r_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
-                             break;
-                case 3: camera_raw_coordinates.m_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-                             camera_raw_coordinates.m_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
-                             break;
-                case 4: camera_raw_coordinates.s_coordinate[0] = blocks[j].x + (blocks[j].width / 2);
-                             camera_raw_coordinates.s_coordinate[1] = blocks[j].y + (blocks[j].height / 2);
-                             break;
-            }
-        }
-        */
-
-
-
-    /*if(frame_index % 50 == 0) {
-      // Display received blocks //
-      printf("frame %d:\n", frame_index);
-      for(index = 0; index != blocks_copied; ++index) {
-        printf("  sig:%2d x:%4d y:%4d width:%4d height:%4d\n",
-               blocks[index].signature,
-               blocks[index].x,
-               blocks[index].y,
-               blocks[index].width,
-               blocks[index].height);
-      }
-      fflush(stdout);
-    }*/
-
-    frame_index++;
 
     ros::spinOnce();
 
