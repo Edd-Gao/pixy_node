@@ -53,11 +53,18 @@ extern "C"{
 
 #define DT 20 //sample interval ms
 
+#define SMOOTH_FILTER_LENGTH 10
+
+static image_coordinate_s smoothBuf[SMOOTH_FILTER_LENGTH];
+bool flagFilterInitialized(false);
+
+static int filterIndex(0);
+
 static int width = 318;
 static int height = 198;
 static int distance = 240;
-static int distanceOfMo = 15;
-static int distanceOfLr = 26;
+static int distanceOfMo =26;
+static int distanceOfLr = 37;
 uint16_t blocks_x = 0;
 uint16_t blocks_y = 0;
 uint16_t blocks_x_ave = 0;
@@ -67,6 +74,8 @@ uint16_t blocks_y_ave = 0;
 struct Block  blocks [BLOCK_BUFFER_SIZE];
 
 static bool run_flag = true;
+
+
 
 struct Gimbal {
   int32_t position;
@@ -311,32 +320,72 @@ int main(int argc, char *  argv[])
 
         }
       }
-      Image_To_Reference_Coordinate(camera_raw_coordinates, &calculated_position_coordinate);
 
-      vel.vector.x = (calculated_position_coordinate.x - lastCorr.x) / DT;
-      vel.vector.y = (calculated_position_coordinate.y - lastCorr.y) / DT;
-      vel.vector.z = (calculated_position_coordinate.z - lastCorr.z) / DT;
-      vel.header.stamp.now();
-      lastCorr = calculated_position_coordinate;
+      if(flagFilterInitialized) {
+          image_coordinate_s filterdImageCoordinate{0};
+        for(int i = 0; i < SMOOTH_FILTER_LENGTH; i++){
+          filterdImageCoordinate.l_coordinate[0] += smoothBuf[i].l_coordinate[0];
+          filterdImageCoordinate.l_coordinate[1] += smoothBuf[i].l_coordinate[1];
+          filterdImageCoordinate.r_coordinate[0] += smoothBuf[i].r_coordinate[0];
+          filterdImageCoordinate.r_coordinate[1] += smoothBuf[i].r_coordinate[1];
+          filterdImageCoordinate.m_coordinate[0] += smoothBuf[i].m_coordinate[0];
+          filterdImageCoordinate.m_coordinate[1] += smoothBuf[i].m_coordinate[1];
+          filterdImageCoordinate.s_coordinate[0] += smoothBuf[i].s_coordinate[0];
+          filterdImageCoordinate.s_coordinate[1] += smoothBuf[i].s_coordinate[1];
+        }
+          filterdImageCoordinate.l_coordinate[0] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.l_coordinate[1] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.m_coordinate[0] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.m_coordinate[1] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.r_coordinate[0] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.r_coordinate[1] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.s_coordinate[0] /= SMOOTH_FILTER_LENGTH;
+          filterdImageCoordinate.s_coordinate[1] /= SMOOTH_FILTER_LENGTH;
+
+          smoothBuf[filterIndex] = camera_raw_coordinates;
+          filterIndex++;
+          filterIndex %= SMOOTH_FILTER_LENGTH;
+
+        Image_To_Reference_Coordinate(filterdImageCoordinate, &calculated_position_coordinate);
+
+        vel.vector.x = (calculated_position_coordinate.x - lastCorr.x) / DT;
+        vel.vector.y = (calculated_position_coordinate.y - lastCorr.y) / DT;
+        vel.vector.z = (calculated_position_coordinate.z - lastCorr.z) / DT;
+        vel.header.stamp = ros::Time::now();
+        lastCorr = calculated_position_coordinate;
 
 #ifdef DEBUG
-      printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.x, calculated_position_coordinate.y, calculated_position_coordinate.z);
-      printf("L:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.l_coordinate[0],camera_raw_coordinates.l_coordinate[1]);
-      printf("R:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.r_coordinate[0],camera_raw_coordinates.r_coordinate[1]);
-      printf("S:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.s_coordinate[0],camera_raw_coordinates.s_coordinate[1]);
-      printf("M:x coordinate %d, y corordinate %d\n",camera_raw_coordinates.m_coordinate[0],camera_raw_coordinates.m_coordinate[1]);
+        printf("(%.4f,\t %.4f,\t %.4f)\n", calculated_position_coordinate.x, calculated_position_coordinate.y,
+               calculated_position_coordinate.z);
+        printf("L:x coordinate %d, y corordinate %d\n", camera_raw_coordinates.l_coordinate[0],
+               camera_raw_coordinates.l_coordinate[1]);
+        printf("R:x coordinate %d, y corordinate %d\n", camera_raw_coordinates.r_coordinate[0],
+               camera_raw_coordinates.r_coordinate[1]);
+        printf("S:x coordinate %d, y corordinate %d\n", camera_raw_coordinates.s_coordinate[0],
+               camera_raw_coordinates.s_coordinate[1]);
+        printf("M:x coordinate %d, y corordinate %d\n", camera_raw_coordinates.m_coordinate[0],
+               camera_raw_coordinates.m_coordinate[1]);
 #endif
 
-      pose.pose.position.x = calculated_position_coordinate.x;
-      pose.pose.position.y = calculated_position_coordinate.y;
-      pose.pose.position.z = calculated_position_coordinate.z;
-      pose.header.stamp.now();
+        pose.pose.position.x = calculated_position_coordinate.x;
+        pose.pose.position.y = calculated_position_coordinate.y;
+        pose.pose.position.z = calculated_position_coordinate.z;
+        pose.header.stamp = ros::Time::now();
 
-      refAngle.data = (int16_t)(calculated_position_coordinate.referenceAngle * 180 / 3.1415926 * 1000);
+        refAngle.data = (int16_t) (calculated_position_coordinate.referenceAngle * 180 / 3.1415926 * 1000);
 
-      vel_pub.publish(vel);
-      pose_pub.publish(pose);
-      angle_pub.publish(refAngle);
+        vel_pub.publish(vel);
+        pose_pub.publish(pose);
+        angle_pub.publish(refAngle);
+      }else{
+        smoothBuf[filterIndex] = camera_raw_coordinates;
+        filterIndex++;
+
+        if(filterIndex == SMOOTH_FILTER_LENGTH) {
+          flagFilterInitialized = true;
+          filterIndex = 0;
+        }
+      }
 
     }
 

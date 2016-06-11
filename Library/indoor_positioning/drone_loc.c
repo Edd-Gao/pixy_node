@@ -190,15 +190,17 @@ int Solve_1_4(double angleA, double angleB, double angleR)
 
 	double x,xx,f,k,temp_x;
 	int i=0;
-	x=15.0;
+	x= dMo;
 
-	for(i=0; i<10; i++)
+	for(i=0; ; i++)
 	{
 		temp_x = x;	//remain unchanged
+		if( temp_x < -dMo)
+			break;
 		f = c4*x*x*x*x + c3*x*x*x + c2*x*x + c1*x +c0;	//the value of function
 		k = 4*c4*x*x*x + 3*c3*x*x + 2*c2*x + c1;		//the value of pitch
 		xx = x - f/k;
-		while((fabs(x-xx))>(1*10e-5) && (fabs(x) < 15.1))
+		while((fabs(x-xx))>(1*10e-5) && (fabs(x) < dMo+1) && (fabs(x) > -dMo-1))
 		{
 			x=xx; 
 			f = c4*x*x*x*x + c3*x*x*x + c2*x*x + c1*x +c0;	//the value of function
@@ -206,12 +208,12 @@ int Solve_1_4(double angleA, double angleB, double angleR)
 			xx=x-f/k;
 		}
 		
-		if(fabs(x) < 15.1)	//if jump out of the loop because of finding the right answer
+		if((fabs(x-xx)) <= (1*10e-5))	//if jump out of the loop because of finding the right answer
 		{
 			sol = xx;
 			break;
 		}
-		x = temp_x - 3.0;	//start another loop
+		x = temp_x - 2.0;	//start another loop
 	}
 
 

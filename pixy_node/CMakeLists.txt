@@ -4,6 +4,8 @@ project (pixy_node CXX C)
 set (CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "~/capstone/Swarm/drone-control/src/position_estimate/pixy_node/cmake" )
 set (LIBPOSITIONING_LIBRARY "~/capstone/Swarm/drone-control/src/position_estimate/pixy_node/lib/indoor_positioning")
 
+add_definitions(-DDEBUG)
+
 find_package(catkin REQUIRED COMPONENTS
     geometry_msgs
     roscpp
@@ -34,7 +36,9 @@ include_directories (${LIBPOSITIONING_LIBRARY}
     ${Boost_INCLUDE_DIR}
     ${LIBUSB_1_INCLUDE_DIRS})
 
-add_library (pos ${LIBPOSITIONING_LIBRARY}/drone_loc.c)
+add_library (pos ${LIBPOSITIONING_LIBRARY}/drone_loc.c
+                 ${LIBPOSITIONING_LIBRARY}/drone_loc.h
+                 ${LIBPOSITIONING_LIBRARY}/MOT.h)
 
 # Add executable here... #
 add_executable (pixy_node main.cpp)
