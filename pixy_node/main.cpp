@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <signal.h>
+#include <string.h>
 #include "pixy.h"
 
 //ros related includes
@@ -53,7 +54,10 @@ extern "C"{
 
 #define DT 20 //sample interval ms
 
-#define SMOOTH_FILTER_LENGTH 10
+#define SMOOTH_FILTER_LENGTH 10 // length of the smooth filter
+
+#define SIGNATURE_1 012 //Pixy signature for L, S, R
+#define SIGNATURE_2 023 //Pixy signature for M
 
 static image_coordinate_s smoothBuf[SMOOTH_FILTER_LENGTH];
 bool flagFilterInitialized(false);
@@ -63,8 +67,8 @@ static int filterIndex(0);
 static int width = 318;
 static int height = 198;
 static int distance = 240;
-static int distanceOfMo =26;
-static int distanceOfLr = 37;
+static int distanceOfMo =36;
+static int distanceOfLr = 50;
 uint16_t blocks_x = 0;
 uint16_t blocks_y = 0;
 uint16_t blocks_x_ave = 0;
@@ -88,6 +92,8 @@ struct Gimbal {
 
 struct Gimbal pan;
 struct Gimbal tilt;
+
+bool enable_pan_tilt(true);
 
 void handle_SIGINT(int unused)
 {
@@ -148,15 +154,22 @@ int main(int argc, char *  argv[])
   int camera_posture = CAMERA_ON_TOP;
   reference_coordinate_s lastCorr;
 
-  /*if(argc == 2){
-    if("top" == argv[1]) {
-      camera_posture = CAMERA_ON_TOP;
-      ROS_INFO("camera on top");
+  if(argc > 1){
+    for(int i = 1; i < argc;i++) {
+      if (strcmp("top", argv[i]) == 0) {
+        camera_posture = CAMERA_ON_TOP;
+        ROS_INFO("camera on top");
+      }
+      else if (strcmp("bottom", argv[i]) == 0) {
+        camera_posture = CAMERA_ON_BOTTOM;
+        ROS_INFO("camera on bottom");
+      }else if(strcmp("enable_pan_tilt",argv[i])==0){
+        enable_pan_tilt =true;
+      }else if(strcmp("disable_pan_tile",argv[i])==0){
+        enable_pan_tilt = false;
+      }
     }
-    else if("bottom" == argv[1]){
-      camera_posture = CAMERA_ON_BOTTOM;
-    ROS_INFO("camera on bottom");}
-  }*/
+  }
 
   ros::init(argc, argv, "Pixy_Node");
 
@@ -220,7 +233,7 @@ int main(int argc, char *  argv[])
       fflush(stdout);
     }
 
-    if (blocks_copied>0) {
+    if (blocks_copied>0 && enable_pan_tilt) {
       // Calculate the difference between the   //
       // center of Pixy's focus and the target. //
       blocks_x = 0;
@@ -261,10 +274,10 @@ int main(int argc, char *  argv[])
     //excute position calculation when found 4 blocks
     int max=0, min=320;
     int max_j=0, min_j=0;
-    if(blocks_copied == 4 && (blocks[0].signature + blocks[1].signature + blocks[2].signature + blocks[3].signature)==5){
+    if(blocks_copied == 4 && (blocks[0].signature + blocks[1].signature + blocks[2].signature + blocks[3].signature)== 3* SIGNATURE_1 + SIGNATURE_2){
 
       for(int j=0; j<4; j++){
-        if(blocks[j].signature == 1){
+        if(blocks[j].signature == SIGNATURE_1){
           if(blocks[j].x > max){
             max_j = j;
             max = blocks[j].x;
@@ -279,7 +292,7 @@ int main(int argc, char *  argv[])
       if(camera_posture == CAMERA_ON_TOP)	//if camera is upright on top
       {
 	for(int j=0; j<4; j++){
-          if(blocks[j].signature == 2){
+          if(blocks[j].signature == SIGNATURE_2){
             camera_raw_coordinates.m_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
             camera_raw_coordinates.m_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
@@ -301,7 +314,7 @@ int main(int argc, char *  argv[])
       else if(camera_posture == CAMERA_ON_BOTTOM)	//if the camera is bottom up
       {
         for(int j=0; j<4; j++){
-          if(blocks[j].signature == 2){
+          if(blocks[j].signature == SIGNATURE_2){
             camera_raw_coordinates.m_coordinate[0] = (int) (blocks[j].x + 0.5 * blocks[j].width);
             camera_raw_coordinates.m_coordinate[1] = (int) (blocks[j].y + 0.5 * blocks[j].height);
           }
@@ -322,7 +335,7 @@ int main(int argc, char *  argv[])
       }
 
       if(flagFilterInitialized) {
-          image_coordinate_s filterdImageCoordinate{0};
+          image_coordinate_s filterdImageCoordinate{0};//this initializer is only supported in c++ 11
         for(int i = 0; i < SMOOTH_FILTER_LENGTH; i++){
           filterdImageCoordinate.l_coordinate[0] += smoothBuf[i].l_coordinate[0];
           filterdImageCoordinate.l_coordinate[1] += smoothBuf[i].l_coordinate[1];

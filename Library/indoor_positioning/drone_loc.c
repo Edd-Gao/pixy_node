@@ -200,7 +200,7 @@ int Solve_1_4(double angleA, double angleB, double angleR)
 		f = c4*x*x*x*x + c3*x*x*x + c2*x*x + c1*x +c0;	//the value of function
 		k = 4*c4*x*x*x + 3*c3*x*x + 2*c2*x + c1;		//the value of pitch
 		xx = x - f/k;
-		while((fabs(x-xx))>(1*10e-5) && (fabs(x) < dMo+1) && (fabs(x) > -dMo-1))
+		while((fabs(x-xx))>(1*10e-5) && (fabs(x) < dMo+1))
 		{
 			x=xx; 
 			f = c4*x*x*x*x + c3*x*x*x + c2*x*x + c1*x +c0;	//the value of function
