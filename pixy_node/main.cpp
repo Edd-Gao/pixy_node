@@ -56,8 +56,8 @@ extern "C"{
 
 #define SMOOTH_FILTER_LENGTH 10 // length of the smooth filter
 
-#define SIGNATURE_1 012 //Pixy signature for L, S, R
-#define SIGNATURE_2 023 //Pixy signature for M
+#define SIGNATURE_1 1 //Pixy signature for L, S, R
+#define SIGNATURE_2 2 //Pixy signature for M
 
 static image_coordinate_s smoothBuf[SMOOTH_FILTER_LENGTH];
 bool flagFilterInitialized(false);
@@ -67,7 +67,7 @@ static int filterIndex(0);
 static int width = 318;
 static int height = 198;
 static int distance = 240;
-static int distanceOfMo =36;
+static int distanceOfMo =34;
 static int distanceOfLr = 50;
 uint16_t blocks_x = 0;
 uint16_t blocks_y = 0;
@@ -225,6 +225,8 @@ int main(int argc, char *  argv[])
     // Get blocks from Pixy //
 
     blocks_copied = pixy_get_blocks(BLOCK_BUFFER_SIZE, &blocks[0]);
+    //ROS_INFO("blocks found:%d",blocks_copied);
+    //ROS_INFO("block sum:%d",blocks[0].signature + blocks[1].signature + blocks[2].signature + blocks[3].signature);
 
     if(blocks_copied < 0) {
       // Error: pixy_get_blocks //
