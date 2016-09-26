@@ -163,17 +163,17 @@ int main(int argc, char *  argv[])
       case 'd':
         if((distance = atoi(optarg))==0)
           return 0;
-
+	ROS_INFO("lens to image sensor distance is set to:%s",optarg);
           break;
       case 'm':
         if((distanceOfMo = atoi(optarg))==0)
           return 0;
-
+	ROS_INFO("M to O distance is set to:%s",optarg);
         break;
       case 'l':
         if((distanceOfLr = atoi(optarg))==0)
           return 0;
-
+	ROS_INFO("L to R distance is set to:%s",optarg);
         break;
       case 'h':
         printf("usage: rosrun pixy_node pixy_node [-i] [-D] [-d] [-m] [-l] [-h]");
